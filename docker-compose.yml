@@ -2,22 +2,44 @@ version: "3.5"
 
 services:
   postgres:
-    image: postgres
+    image: postgres:15-alpine
+    # I choose these values arbitrarily, the \copy took about 5 minutes on machine with 6*2 Threads and 60 GB free RAM
+    # Though you should set the `max_wal_size` to some bigger size your machine can manage, otherwise you will get
+    # a lot of checkpoint warnings
+    #command:
+    #  - "postgres"
+    #  - "-c"
+    #  - "shared_buffers=512MB"
+    #  - "-c"
+    #  - "work_mem=12GB"
+    #  - "-c"
+    #  - "maintenance_work_mem=2GB"
+    #  - "-c"
+    #  - "max_wal_size=8GB"
     environment:
       - POSTGRES_DB=sb
       - POSTGRES_PASSWORD=mysecretpassword
     volumes:
+      - "postgres_data:/var/lib/postgresql/data"
       - "./postgres-init.d/:/docker-entrypoint-initdb.d/"
-      # place 'sponsorTimes.csv' into this directory to have it imported at database creation
+      # Place 'sponsorTimes.csv' into ./db-dumps directory to have it imported at database creation
       - "./db-dumps/:/db-dumps"
-
+      # ! Init scripts will only run when there is no database, it will never overwrite existing installation
+      # Use `docker compose down -v` to delete the database and trigger init at next container start
 
   gosb:
     #image: gosb
     restart: unless-stopped
     build:
       context: .
+    #ports:
+    # - "127.0.0.1:8000:8000"
     depends_on:
       - postgres
     environment:
+      #- HTTP_PORT=8000 # This is default
+      # `sslmode=disable` is required
       - "POSTGRES_DSN=postgresql://postgres:mysecretpassword@postgres/sb?sslmode=disable"
+
+volumes:
+  postgres_data:

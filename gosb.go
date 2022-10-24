@@ -10,11 +10,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var ListenBind = "0.0.0.0"
 var HttpPort = 8000
 var db *sqlx.DB = nil
+var EnableCacheHeaders = true
+
+const cacheMaxAge = 1800 // the db basically never changes
 
 const skipSegmentsQuery = `SELECT "videoID",
        	"hashedVideoID" as hash,
@@ -29,75 +33,43 @@ const skipSegmentsQuery = `SELECT "videoID",
        	"userID",
        	"description"
 FROM public.sponsor_times
-WHERE "hashedVideoID" ILIKE $1 || '%'
+WHERE service = 'YouTube'
+  AND "hashedVideoID" ILIKE $1 || '%'
   AND "votes" >= 1
   AND "category" IN
       ('sponsor', 'intro', 'outro', 'interaction', 'selfpromo', 'music_offtopic', 'preview', 'poi_highlight',
        'exclusive_access')
 ORDER BY "startTime" LIMIT 100`
 
-type SkipSegmentRow struct {
-	VideoID string `db:"videoID"`
-	Hash    string
-
-	StartTime     float64 `db:"startTime"`
-	EndTime       float64 `db:"endTime"`
-	UUID          string  `db:"UUID"`
-	Category      string
-	ActionType    string  `db:"actionType"`
-	Locked        int     `db:"locked"`
-	Votes         int     `db:"votes"`
-	VideoDuration float64 `db:"videoDuration"`
-	UserID        string  `db:"userID"`
-	Description   string  `db:"description"`
-}
-
-func (r SkipSegmentRow) ToSkipSegment() *SkipSegment {
-	return &SkipSegment{
-		Segment:       [2]float64{r.StartTime, r.EndTime},
-		UUID:          r.UUID,
-		Category:      r.Category,
-		ActionType:    r.ActionType,
-		Locked:        r.Locked,
-		Votes:         r.Votes,
-		VideoDuration: r.VideoDuration,
-		UserID:        r.UserID,
-		Description:   r.Description,
-	}
-}
-
-type VideoSkipSegmentsResult struct {
-	VideoID  string         `json:"videoID"`
-	Hash     string         `json:"hash"`
-	Segments []*SkipSegment `json:"segments"`
-}
-
-type SkipSegment struct {
-	Segment       [2]float64 `json:"segment"`
-	UUID          string     `json:"UUID"`
-	Category      string     `json:"category"`
-	ActionType    string     `json:"actionType"`
-	Locked        int        `json:"locked"`
-	Votes         int        `json:"votes"`
-	VideoDuration float64    `json:"videoDuration"`
-	UserID        string     `json:"userID"`
-	Description   string     `json:"description"`
-}
-
 type SkipSegmentsVideoMap map[string]*VideoSkipSegmentsResult
 
 func getEnvOpts() {
-	envHttpPort, ok := os.LookupEnv("HTTP_PORT")
-	if ok {
-		i, err := strconv.Atoi(envHttpPort)
-		if err != nil {
-			log.Fatalf("Failed converting HTTP_PORT value '%s' to number: %s", envHttpPort, err)
+	{
+		envHttpPort, ok := os.LookupEnv("HTTP_PORT")
+		if ok {
+			i, err := strconv.Atoi(envHttpPort)
+			if err != nil {
+				log.Fatalf("Failed converting HTTP_PORT value '%s' to number: %s", envHttpPort, err)
+			}
+			HttpPort = i
 		}
-		HttpPort = i
 	}
-	_, ok = os.LookupEnv("DEBUG")
-	if ok {
-		log.SetLevel(log.DebugLevel)
+
+	{
+		_, ok := os.LookupEnv("DEBUG")
+		if ok {
+			log.SetLevel(log.DebugLevel)
+		}
+	}
+
+	{
+		value, ok := os.LookupEnv("ENABLE_CACHE_HEADER")
+		if ok && len(value) != 0 && (strings.ToLower(value) == "true" || value == "1") {
+			log.Info("Cache Headers enabled")
+			EnableCacheHeaders = true
+		} else {
+			log.Info("Cache Headers disabled")
+		}
 	}
 }
 
@@ -137,8 +109,14 @@ func handleRequests() {
 		log.Debug("Debug level enabled, logging web requests enabled")
 		router.Use(loggingMiddleware)
 	}
+
+	if EnableCacheHeaders == true {
+		router.Use(CacheHeadersMiddleware)
+	}
+
 	router.HandleFunc("/", indexPage)
-	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`, apiSkipSegmentsEndpoint).Methods("GET")
+	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`, apiSkipSegmentsEndpoint).Methods(http.MethodGet)
+
 	addrStr := fmt.Sprintf("%s:%d", ListenBind, HttpPort)
 	log.Printf("Serving requests on: '%s'", addrStr)
 	log.Fatal(http.ListenAndServe(addrStr, router))
@@ -218,6 +196,9 @@ func apiSkipSegmentsEndpoint(w http.ResponseWriter, r *http.Request) {
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logEntry := log.WithField("remote", r.RemoteAddr)
+		if r.Header.Get("User-Agent") != "" {
+			logEntry.WithField("User-Agent", r.Header.Get("User-Agent"))
+		}
 		if r.Header.Get("X-Forwarded-For") != "" {
 			logEntry.WithField("X-Forwarded-For", r.Header.Get("X-Forwarded-For"))
 		}
@@ -227,4 +208,59 @@ func loggingMiddleware(next http.Handler) http.Handler {
 		logEntry.Debugf("Request: %s", r.RequestURI)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func CacheHeadersMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, stale-if-error=120", cacheMaxAge))
+		next.ServeHTTP(w, r)
+	})
+}
+
+type SkipSegmentRow struct {
+	VideoID string `db:"videoID"`
+	Hash    string
+
+	StartTime     float64 `db:"startTime"`
+	EndTime       float64 `db:"endTime"`
+	UUID          string  `db:"UUID"`
+	Category      string
+	ActionType    string  `db:"actionType"`
+	Locked        int     `db:"locked"`
+	Votes         int     `db:"votes"`
+	VideoDuration float64 `db:"videoDuration"`
+	UserID        string  `db:"userID"`
+	Description   string  `db:"description"`
+}
+
+func (r SkipSegmentRow) ToSkipSegment() *SkipSegment {
+	return &SkipSegment{
+		Segment:       [2]float64{r.StartTime, r.EndTime},
+		UUID:          r.UUID,
+		Category:      r.Category,
+		ActionType:    r.ActionType,
+		Locked:        r.Locked,
+		Votes:         r.Votes,
+		VideoDuration: r.VideoDuration,
+		UserID:        r.UserID,
+		Description:   r.Description,
+	}
+}
+
+type VideoSkipSegmentsResult struct {
+	VideoID  string         `json:"videoID"`
+	Hash     string         `json:"hash"`
+	Segments []*SkipSegment `json:"segments"`
+}
+
+type SkipSegment struct {
+	Segment       [2]float64 `json:"segment"`
+	UUID          string     `json:"UUID"`
+	Category      string     `json:"category"`
+	ActionType    string     `json:"actionType"`
+	Locked        int        `json:"locked"`
+	Votes         int        `json:"votes"`
+	VideoDuration float64    `json:"videoDuration"`
+	UserID        string     `json:"userID"`
+	Description   string     `json:"description"`
 }

@@ -1,0 +1,1 @@
+Put `sponsorTimes.csv` from https://status.sponsor.ajay.app/ into this folder.
