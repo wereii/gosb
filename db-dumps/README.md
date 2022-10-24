@@ -1,1 +1,1 @@
-Put `sponsorTimes.csv` from https://status.sponsor.ajay.app/ into this folder.
+Put `sponsorTimes.csv` from https://sponsor.ajay.app/database into this folder.
