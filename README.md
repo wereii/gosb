@@ -1,4 +1,4 @@
-## Go Sponsor Block
+## Go SponsorBlock
 
 This is SponsorBlock server implementation that does only segments lookup
 (`/api/skipSegments/:shaHash`).  
@@ -17,8 +17,7 @@ The underlying database is modified and the schema has a lot of (small) changes.
 The code was done in a quick manner (e.g. it sucks).  
 Currently, it also ignores all the extra options of `/api/skipSegments/:shaHash` 
 endpoint like `categories`, `service` and `actionType` (TBD?).  
-Running the server locally, without fully qualified domain (localhost, 127.0.0.1)
-might not work due to browser security reasons/cors (?). 
+Service is (currently) forced to `YouTube`. 
 
 ### Running
 
@@ -36,10 +35,12 @@ As of now the final DB size is about 7GB (as reported by postgres).
 
 - Go to your browser, click SponsorBlock extension and open Settings,
   replace the `SponsorBlock Server Address:` address at the end of Miscellaneous tab 
+- Running the server locally, without fully qualified domain (localhost, 127.0.0.1)
+  might not work due to browser security reasons/CORS (?).
 
 
 ### Environment options
 - The `POSTGRES_DSN` is required
 - `HTTP_PORT` - listening port, 8000 by default
 - `DEBUG` - a bit of extra logging (the value is ignored, if it is set, it's enabled)
-- ''
+- ``

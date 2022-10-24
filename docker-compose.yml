@@ -37,7 +37,8 @@ services:
     depends_on:
       - postgres
     environment:
-      #- HTTP_PORT=8000 # This is default
+      - ENABLE_CACHE_HEADERS=1
+      #- HTTP_PORT=8000 # default
       # `sslmode=disable` is required
       - "POSTGRES_DSN=postgresql://postgres:mysecretpassword@postgres/sb?sslmode=disable"
 
