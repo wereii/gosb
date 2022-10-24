@@ -29,7 +29,7 @@ const skipSegmentsQuery = `SELECT "videoID",
        	"userID",
        	"description"
 FROM public.sponsor_times
-WHERE starts_with("hashedVideoID", $1)
+WHERE "hashedVideoID" ILIKE $1 || '%'
   AND "votes" >= 1
   AND "category" IN
       ('sponsor', 'intro', 'outro', 'interaction', 'selfpromo', 'music_offtopic', 'preview', 'poi_highlight',
@@ -44,12 +44,12 @@ type SkipSegmentRow struct {
 	EndTime       float64 `db:"endTime"`
 	UUID          string  `db:"UUID"`
 	Category      string
-	ActionType    string `db:"actionType"`
-	Locked        int    `db:"locked"`
-	Votes         int    `db:"votes"`
-	VideoDuration int    `db:"videoDuration"`
-	UserID        string `db:"userID"`
-	Description   string `db:"description"`
+	ActionType    string  `db:"actionType"`
+	Locked        int     `db:"locked"`
+	Votes         int     `db:"votes"`
+	VideoDuration float64 `db:"videoDuration"`
+	UserID        string  `db:"userID"`
+	Description   string  `db:"description"`
 }
 
 func (r SkipSegmentRow) ToSkipSegment() *SkipSegment {
@@ -79,7 +79,7 @@ type SkipSegment struct {
 	ActionType    string     `json:"actionType"`
 	Locked        int        `json:"locked"`
 	Votes         int        `json:"votes"`
-	VideoDuration int        `json:"videoDuration"`
+	VideoDuration float64    `json:"videoDuration"`
 	UserID        string     `json:"userID"`
 	Description   string     `json:"description"`
 }
@@ -168,7 +168,6 @@ func apiSkipSegmentsEndpoint(w http.ResponseWriter, r *http.Request) {
 	{
 		parsedRowsCount := 0
 		for rows.Next() {
-			log.Debugf("D: %#v", rows)
 			segmentRow := SkipSegmentRow{}
 
 			err := rows.StructScan(&segmentRow)
