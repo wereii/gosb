@@ -36,3 +36,10 @@ As of now the final DB size is about 7GB (as reported by postgres).
 
 - Go to your browser, click SponsorBlock extension and open Settings,
   replace the `SponsorBlock Server Address:` address at the end of Miscellaneous tab 
+
+
+### Environment options
+- The `POSTGRES_DSN` is required
+- `HTTP_PORT` - listening port, 8000 by default
+- `DEBUG` - a bit of extra logging (the value is ignored, if it is set, it's enabled)
+- ''
