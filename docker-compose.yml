@@ -1,0 +1,23 @@
+version: "3.5"
+
+services:
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_DB=sb
+      - POSTGRES_PASSWORD=mysecretpassword
+    volumes:
+      - "./postgres-init.d/:/docker-entrypoint-initdb.d/"
+      # place 'sponsorTimes.csv' into this directory to have it imported at database creation
+      - "./db-dumps/:/db-dumps"
+
+
+  gosb:
+    #image: gosb
+    restart: unless-stopped
+    build:
+      context: .
+    depends_on:
+      - postgres
+    environment:
+      - "POSTGRES_DSN=postgresql://postgres:mysecretpassword@postgres/sb?sslmode=disable"
