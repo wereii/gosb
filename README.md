@@ -16,6 +16,11 @@ Official links:
 https://github.com/ajayyy/SponsorBlock  
 https://sponsor.ajay.app/
 
+Instance of this server:
+
+https://sb.doubleuu.win
+
+
 ### Notes
 
 The underlying database is modified and the schema has a lot of (small) changes.    
