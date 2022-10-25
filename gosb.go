@@ -29,7 +29,7 @@ func handleRequests() {
 	router.HandleFunc("/", indexPage)
 	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`,
 		endpoints.ApiSkipSegmentsEndpoint).Methods(http.MethodGet, http.MethodOptions)
-	
+
 	router.Use(mux.CORSMethodMiddleware(router))
 
 	addrStr := fmt.Sprintf("%s:%d", settings.ListenBind, settings.HttpPort)
@@ -38,6 +38,11 @@ func handleRequests() {
 }
 
 func indexPage(w http.ResponseWriter, r *http.Request) {
+	endpoints.AddCORSHeaders(w)
+	if r.Method == http.MethodOptions {
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "running")
 }

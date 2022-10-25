@@ -31,7 +31,7 @@ WHERE service = 'YouTube'
 ORDER BY "startTime" LIMIT 250`
 
 func ApiSkipSegmentsEndpoint(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	AddCORSHeaders(w)
 	if r.Method == http.MethodOptions {
 		return
 	}
