@@ -28,10 +28,10 @@ services:
       # Use `docker compose down -v` to delete the database and trigger init at next container start
 
   gosb:
-    #image: gosb
+    image: ghcr.io/wereii/gosb:latest
     restart: unless-stopped
-    build:
-      context: .
+    #build:
+    #  context: .
     #ports:
     # - "127.0.0.1:8000:8000"
     depends_on:
