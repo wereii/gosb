@@ -7,7 +7,7 @@ import (
 
 func LoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		logEntry := logrus.WithField("remote", r.RemoteAddr)
+		logEntry := logrus.WithField("remote", r.RemoteAddr).WithField("meth", r.Method)
 		if r.Header.Get("User-Agent") != "" {
 			logEntry = logEntry.WithField("User-Agent", r.Header.Get("User-Agent"))
 		}
