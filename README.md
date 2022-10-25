@@ -1,7 +1,7 @@
 ## Go SponsorBlock
 
-This is SponsorBlock server implementation that does only segments lookup
-(`/api/skipSegments/:shaHash`).  
+This is **unofficial** SponsorBlock server implementation that does only segments lookup
+(`/api/skipSegments/:shaHash`).
 
 It's trying to be a very quick and small (temporary) replacement of the main server.
 There is no other functionality like adding segments, voting
@@ -10,6 +10,11 @@ Basically it will load the segments but nothing else will work.
 
 **Though** you can create segments as the extension will store them locally,
 and it should be able to upload them if you go back to official server.
+
+Official links:
+
+https://github.com/ajayyy/SponsorBlock  
+https://sponsor.ajay.app/
 
 ### Notes
 
@@ -24,7 +29,7 @@ Service is (currently) forced to `YouTube`.
 As of now the final DB size is about 7GB (as reported by postgres).
 
 - Clone the repo
-- Download `sponsorTimes.csv` from https://status.sponsor.ajay.app/ and put it into `db-dumps/`
+- Download `sponsorTimes.csv` from https://sponsor.ajay.app/database and put it into `db-dumps/`
 - `docker compose up postgres` - This will create schema and import data from the csv.
     - It might take some time - mainly seems to depend on storage speed (?)
     - Took about 5 minutes on Ryzen 5 3600, 6*2 Threads with 64 GB ram and decent ~500GB NVMe SSD
@@ -43,4 +48,3 @@ As of now the final DB size is about 7GB (as reported by postgres).
 - The `POSTGRES_DSN` is required
 - `HTTP_PORT` - listening port, 8000 by default
 - `DEBUG` - a bit of extra logging (the value is ignored, if it is set, it's enabled)
-- ``
