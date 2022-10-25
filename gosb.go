@@ -27,7 +27,10 @@ func handleRequests() {
 	}
 
 	router.HandleFunc("/", indexPage)
-	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`, endpoints.ApiSkipSegmentsEndpoint).Methods(http.MethodGet)
+	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`,
+		endpoints.ApiSkipSegmentsEndpoint).Methods(http.MethodGet, http.MethodOptions)
+	
+	router.Use(mux.CORSMethodMiddleware(router))
 
 	addrStr := fmt.Sprintf("%s:%d", settings.ListenBind, settings.HttpPort)
 	log.Printf("Serving requests on: '%s'", addrStr)
