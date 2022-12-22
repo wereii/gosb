@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/getsentry/sentry-go"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -16,6 +18,8 @@ import (
 
 func handleRequests() {
 	router := mux.NewRouter()
+	sentryHandler := sentryhttp.New(sentryhttp.Options{Repanic: true})
+
 	//router.StrictSlash()
 	if log.IsLevelEnabled(log.DebugLevel) {
 		log.Debug("Debug level enabled, logging web requests enabled")
@@ -26,9 +30,9 @@ func handleRequests() {
 		router.Use(middlewares.CacheHeadersMiddleware)
 	}
 
-	router.HandleFunc("/", indexPage)
+	router.HandleFunc("/", sentryHandler.HandleFunc(indexPage))
 	router.HandleFunc(`/api/skipSegments/{shaPrefix:\w{4,32}}`,
-		endpoints.ApiSkipSegmentsEndpoint).Methods(http.MethodGet, http.MethodOptions)
+		sentryHandler.HandleFunc(endpoints.ApiSkipSegmentsEndpoint)).Methods(http.MethodGet, http.MethodOptions)
 
 	router.Use(mux.CORSMethodMiddleware(router))
 
@@ -48,6 +52,17 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	if err := sentry.Init(sentry.ClientOptions{
+		Dsn:           os.Getenv("SENTRY_DSN"),
+		EnableTracing: true,
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for performance monitoring.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 0.9,
+	}); err != nil {
+		log.Fatalf("Sentry initialization failed: %v\n", err)
+	}
+
 	{
 		var err error
 		postgresDSN := os.Getenv("POSTGRES_DSN")
@@ -72,6 +87,7 @@ func main() {
 			}
 		}()
 	}
+
 	settings.GetEnvOpts()
 	handleRequests()
 }
