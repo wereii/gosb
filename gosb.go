@@ -60,7 +60,7 @@ func main() {
 		// We recommend adjusting this value in production,
 		TracesSampleRate: 0.1,
 	}); err != nil {
-		log.Fatalf("Sentry initialization failed: %v\n", err)
+		log.Warnf("Sentry initialization failed: %v\n", err)
 	}
 
 	{
