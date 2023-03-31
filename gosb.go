@@ -58,7 +58,7 @@ func main() {
 		// Set TracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production,
-		TracesSampleRate: 0.9,
+		TracesSampleRate: 0.1,
 	}); err != nil {
 		log.Fatalf("Sentry initialization failed: %v\n", err)
 	}
